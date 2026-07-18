@@ -2,7 +2,7 @@
 
 A single-page personal portfolio. No build step, no dependencies to install — GitHub Pages serves `index.html` directly.
 
-**Live:** https://YOUR_USERNAME.github.io
+**Live:** https://danons.github.io
 
 ---
 
@@ -38,7 +38,7 @@ Search `index.html` for these and replace:
 | --- | --- |
 | `Your Name` | `<title>`, nav brand, hero, about, footer |
 | `YN` | the `#avatar` initials |
-| `YOUR_USERNAME` | GitHub / LinkedIn / X links in the contact section |
+| `HANDLE` | LinkedIn / X links in the contact section (currently commented out) |
 | `darulquro17@gmail.com` | contact button (appears twice: `href` and label) |
 
 For a real photo: drop a square image at `assets/avatar.jpg`, then replace
@@ -68,7 +68,7 @@ Then open http://localhost:8000
 
 ## Deploying
 
-The repo is named `YOUR_USERNAME.github.io`, so anything pushed to `main` publishes to the root URL within a minute or two:
+The repo is named `Danons.github.io`, so anything pushed to `main` publishes to the root URL within a minute or two:
 
 ```bash
 git add .
