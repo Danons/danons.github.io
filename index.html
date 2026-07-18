@@ -6,9 +6,40 @@
 <title>Your Name — Portfolio</title>
 <meta name="description" content="Portfolio of Your Name — developer, designer, and builder of things on the web.">
 
+<link rel="canonical" href="https://danons.github.io/">
+<meta name="theme-color" content="#05060a">
+
 <meta property="og:type" content="website">
+<meta property="og:url" content="https://danons.github.io/">
 <meta property="og:title" content="Your Name — Portfolio">
 <meta property="og:description" content="Developer, designer, and builder of things on the web.">
+<meta name="twitter:card" content="summary_large_image">
+<!-- Add a 1200x630 PNG at assets/og.png and uncomment for rich link previews:
+<meta property="og:image" content="https://danons.github.io/assets/og.png"> -->
+
+<!-- Inline SVG favicon — avoids the guaranteed /favicon.ico 404 without
+     adding a binary file to the repo. -->
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><defs><linearGradient id='g' x1='0' y1='0' x2='1' y2='1'><stop offset='0' stop-color='%238b5cf6'/><stop offset='1' stop-color='%2322d3ee'/></linearGradient></defs><circle cx='50' cy='50' r='46' fill='url(%23g)'/></svg>">
+
+<script>
+/* Runs before first paint — deliberately inline and blocking.
+   Resolving the theme in the deferred module instead would flash a dark
+   page at light-theme visitors on every load. */
+(function () {
+  try {
+    var t = localStorage.getItem('theme');
+    if (!t) t = matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+    document.documentElement.dataset.theme = t;
+  } catch (e) { /* private mode: fall through to the dark default */ }
+
+  /* Failsafe: [data-reveal] elements start at opacity 0 and are revealed by
+     GSAP. If a CDN hangs rather than failing fast, that never happens and the
+     page stays blank. This guarantees content appears regardless. */
+  setTimeout(function () {
+    document.documentElement.classList.add('reveal-failsafe');
+  }, 2500);
+})();
+</script>
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -329,9 +360,14 @@ section { position: relative; padding: 110px 0; }
   background: var(--bg);
   display: grid; place-items: center; overflow: hidden;
   font-family: var(--font-display); font-size: 4rem; font-weight: 700;
-  color: transparent;
-  background-image: var(--gradient);
+}
+/* The gradient-text treatment has to live on an inner element: background-clip
+   clips the element's own backdrop as well, so applying it to .avatar erased
+   the solid --bg fill and let the frame's gradient flood the whole square. */
+.avatar span {
+  background: var(--gradient);
   -webkit-background-clip: text; background-clip: text;
+  color: transparent;
 }
 .avatar img { width: 100%; height: 100%; object-fit: cover; }
 
@@ -422,6 +458,11 @@ section { position: relative; padding: 110px 0; }
 .card-links a:hover { color: var(--accent-2); gap: 9px; }
 .card-links svg { width: 15px; height: 15px; }
 
+/* The [hidden] attribute maps to `display: none` in the UA stylesheet, which
+   author rules outrank — so `.card { display: flex }` above silently wins and
+   filtering hides nothing. This rule is what makes the filter actually work. */
+.card[hidden] { display: none; }
+
 .empty-note { color: var(--text-faint); padding: 40px 0; }
 
 /* --- Contact --- */
@@ -467,6 +508,10 @@ footer {
    so a JS-off visitor still sees the whole page.
    ============================================================ */
 .js [data-reveal] { opacity: 0; transform: translateY(26px); }
+
+/* Set by the failsafe timer in <head> — wins over the rule above so content
+   can never stay invisible because a third-party script never arrived. */
+.reveal-failsafe [data-reveal] { opacity: 1 !important; transform: none !important; }
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
@@ -548,7 +593,7 @@ footer {
         <div class="avatar-frame" data-reveal>
           <!-- Drop a square photo at assets/avatar.jpg and swap the initials
                below for: <img src="assets/avatar.jpg" alt="Your Name"> -->
-          <div class="avatar" id="avatar">YN</div>
+          <div class="avatar" id="avatar"><span>YN</span></div>
         </div>
 
         <div class="about-body" data-reveal>
@@ -719,13 +764,15 @@ document.getElementById('year').textContent = new Date().getFullYear();
 const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 /* ---- theme ---- */
-const root   = document.documentElement;
-const stored = localStorage.getItem('theme');
-setTheme(stored || (matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark'));
+const root = document.documentElement;
+// The theme is already resolved by the inline <head> script, so there is
+// nothing to do on load here — only on an explicit toggle.
 
 function setTheme(theme) {
   root.dataset.theme = theme;
-  localStorage.setItem('theme', theme);
+  // Persisting can throw in private mode / with storage disabled. A portfolio
+  // forgetting a preference is fine; the module dying at top level is not.
+  try { localStorage.setItem('theme', theme); } catch (e) {}
   window.dispatchEvent(new CustomEvent('themechange', { detail: theme }));
 }
 
@@ -769,25 +816,32 @@ const linkLabels = { demo: 'Live demo', source: 'Source', writeup: 'Read it' };
 
 const initials = str => str.split(' ').slice(0, 2).map(w => w[0]).join('').toUpperCase();
 
+/* Card markup is built by string concatenation, so anything from PROJECTS has
+   to be escaped — otherwise an apostrophe or angle bracket in a title silently
+   breaks the layout, and pasting in a project description from elsewhere is an
+   injection waiting to happen. */
+const ESCAPES = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
+const esc = s => String(s).replace(/[&<>"']/g, c => ESCAPES[c]);
+
 function cardHTML(p) {
   const media = p.image
-    ? `<img src="${p.image}" alt="${p.title}" loading="lazy">`
-    : initials(p.title);
+    ? `<img src="${esc(p.image)}" alt="${esc(p.title)}" loading="lazy">`
+    : esc(initials(p.title));
 
   const links = Object.entries(p.links || {})
     .map(([kind, href]) =>
-      `<a href="${href}" ${href.startsWith('http') ? 'target="_blank" rel="noopener"' : ''}>
+      `<a href="${esc(href)}" ${href.startsWith('http') ? 'target="_blank" rel="noopener"' : ''}>
          ${icons[kind]}${linkLabels[kind]}
        </a>`)
     .join('');
 
   return `
-    <article class="card" data-category="${p.category}" data-reveal>
-      <div class="card-media" style="background:linear-gradient(135deg, ${p.accent[0]}, ${p.accent[1]})">${media}</div>
+    <article class="card" data-category="${esc(p.category)}" data-reveal>
+      <div class="card-media" style="background:linear-gradient(135deg, ${esc(p.accent[0])}, ${esc(p.accent[1])})">${media}</div>
       <div class="card-body">
-        <h3>${p.title}</h3>
-        <p>${p.blurb}</p>
-        <div class="tags">${p.tags.map(t => `<span class="tag">${t}</span>`).join('')}</div>
+        <h3>${esc(p.title)}</h3>
+        <p>${esc(p.blurb)}</p>
+        <div class="tags">${p.tags.map(t => `<span class="tag">${esc(t)}</span>`).join('')}</div>
         ${links ? `<div class="card-links">${links}</div>` : ''}
       </div>
     </article>`;
@@ -816,6 +870,10 @@ filters.addEventListener('click', e => {
   });
 
   empty.hidden = shown > 0;
+
+  // Filtering changes document height, so every ScrollTrigger below the grid
+  // is now anchored to the wrong scroll position until it recalculates.
+  if (typeof ScrollTrigger !== 'undefined') ScrollTrigger.refresh();
 });
 
 /* cursor-tracked sheen on cards */
@@ -874,12 +932,24 @@ function initMotion() {
 /* anchor links routed through Lenis so they inherit the smooth easing */
 document.addEventListener('click', e => {
   const a = e.target.closest('a[href^="#"]');
-  if (!a || a.getAttribute('href') === '#') return;
-  const target = document.querySelector(a.getAttribute('href'));
+  if (!a) return;
+
+  const href = a.getAttribute('href');
+
+  // Placeholder links (href="#") would otherwise jump the page to the top.
+  if (href === '#') { e.preventDefault(); return; }
+
+  const target = document.querySelector(href);
   if (!target) return;
+
   e.preventDefault();
   if (lenis) lenis.scrollTo(target, { offset: -60 });
   else target.scrollIntoView({ behavior: reduceMotion ? 'auto' : 'smooth' });
+
+  // Scrolling alone leaves keyboard focus behind, which silently breaks the
+  // skip link: the view moves but the next Tab continues from the old spot.
+  target.setAttribute('tabindex', '-1');
+  target.focus({ preventScroll: true });
 });
 
 /* ============================================================
@@ -915,7 +985,10 @@ async function initHero() {
     return; // no WebGL context available
   }
 
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  // Capped at 1.5 rather than 2: the fragment shader is expensive (see fbm
+  // below) and the top DPR quartile is where integrated GPUs start dropping
+  // frames. The difference is invisible on a blurred gradient.
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
   renderer.setSize(window.innerWidth, window.innerHeight, false);
 
   const scene  = new THREE.Scene();
@@ -964,9 +1037,13 @@ async function initHero() {
                    mix(hash(i + vec2(0,1)), hash(i + vec2(1,1)), u.x), u.y);
       }
 
+      // 3 octaves, not 5. fbm is called 5x per pixel below and each octave
+      // costs 4 sin() calls, so 5 octaves meant ~100 transcendentals per
+      // pixel per frame. At 3 it is ~60, and on a soft gradient the two upper
+      // octaves were not visible anyway.
       float fbm(vec2 p) {
         float v = 0.0, a = 0.5;
-        for (int i = 0; i < 5; i++) {
+        for (int i = 0; i < 3; i++) {
           v += a * noise(p);
           p *= 2.02;
           a *= 0.5;
