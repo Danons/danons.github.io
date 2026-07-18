@@ -67,6 +67,12 @@
   --accent-3: #f472b6;
   --gradient: linear-gradient(120deg, var(--accent), var(--accent-2) 55%, var(--accent-3));
 
+  /* The display gradient passes through light cyan (#22d3ee), where white text
+     lands near 1.9:1 — well under the 4.5:1 WCAG AA floor. Anything carrying
+     white label text uses this darker variant instead, whose every stop clears
+     4.5:1. Deliberately not themed: it sits behind white text in both modes. */
+  --gradient-cta: linear-gradient(120deg, #7c3aed, #4f46e5 55%, #db2777);
+
   --shadow: 0 20px 60px -20px rgba(0,0,0,.7);
   --glow:   0 0 60px -10px rgba(139,92,246,.45);
 
@@ -140,6 +146,14 @@ button { font: inherit; color: inherit; cursor: pointer; }
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
+}
+
+/* Visible to screen readers, invisible on screen. Used for the filter live
+   region, which must be in the accessibility tree but not in the layout. */
+.sr-only {
+  position: absolute; width: 1px; height: 1px;
+  margin: -1px; padding: 0; border: 0;
+  clip-path: inset(50%); overflow: hidden; white-space: nowrap;
 }
 
 .skip-link {
@@ -305,7 +319,7 @@ button { font: inherit; color: inherit; cursor: pointer; }
   will-change: transform;
 }
 .btn-primary {
-  background: var(--gradient); color: #fff;
+  background: var(--gradient-cta); color: #fff;
   box-shadow: var(--glow);
 }
 .btn-primary:hover { box-shadow: 0 0 70px -6px color-mix(in srgb, var(--accent) 70%, transparent); }
@@ -393,7 +407,7 @@ section { position: relative; padding: 110px 0; }
 }
 .filter:hover { color: var(--text); border-color: var(--border-strong); }
 .filter[aria-pressed="true"] {
-  background: var(--gradient); color: #fff; border-color: transparent;
+  background: var(--gradient-cta); color: #fff; border-color: transparent;
   box-shadow: 0 8px 30px -10px color-mix(in srgb, var(--accent) 80%, transparent);
 }
 
@@ -638,8 +652,21 @@ footer {
       </div>
 
       <div class="filters" id="filters" role="group" aria-label="Filter projects by category" data-reveal></div>
+
+      <!-- Filtering is a purely visual change, so screen reader users get no
+           feedback that anything happened. This announces the new result count. -->
+      <p class="sr-only" id="filter-status" role="status" aria-live="polite"></p>
+
       <div class="grid" id="grid"></div>
       <p class="empty-note" id="empty" hidden>Nothing in this category yet.</p>
+
+      <noscript>
+        <p class="empty-note">
+          Projects are rendered with JavaScript, which is disabled in your browser.
+          You can browse everything on
+          <a href="https://github.com/Danons" style="color:var(--accent-2)">my GitHub profile</a> instead.
+        </p>
+      </noscript>
     </div>
   </section>
 
@@ -693,7 +720,7 @@ footer {
 <script src="https://unpkg.com/lenis@1.1.18/dist/lenis.min.js" defer></script>
 
 <script type="importmap">
-{ "imports": { "three": "https://unpkg.com/three@0.160.0/build/three.module.js" } }
+{ "imports": { "three": "https://unpkg.com/three@0.160.0/build/three.module.min.js" } }
 </script>
 
 <script type="module">
@@ -770,11 +797,24 @@ const root = document.documentElement;
 
 function setTheme(theme) {
   root.dataset.theme = theme;
+
+  // An icon-only button with a fixed label gives a screen reader no way to know
+  // the current theme or what pressing it will do. Describe the action.
+  const toggle = document.getElementById('theme-toggle');
+  if (toggle) {
+    toggle.setAttribute('aria-label',
+      theme === 'dark' ? 'Switch to light theme' : 'Switch to dark theme');
+  }
+
   // Persisting can throw in private mode / with storage disabled. A portfolio
   // forgetting a preference is fine; the module dying at top level is not.
   try { localStorage.setItem('theme', theme); } catch (e) {}
   window.dispatchEvent(new CustomEvent('themechange', { detail: theme }));
 }
+
+// The inline <head> script set the theme before paint, but only the attribute —
+// sync the button label to match on startup.
+setTheme(root.dataset.theme || 'dark');
 
 document.getElementById('theme-toggle').addEventListener('click', () => {
   setTheme(root.dataset.theme === 'dark' ? 'light' : 'dark');
@@ -785,15 +825,24 @@ const nav        = document.getElementById('nav');
 const menuBtn    = document.getElementById('menu-btn');
 const mobileMenu = document.getElementById('mobile-menu');
 
-menuBtn.addEventListener('click', () => {
-  const open = mobileMenu.classList.toggle('open');
+function setMenu(open) {
+  mobileMenu.classList.toggle('open', open);
   menuBtn.setAttribute('aria-expanded', String(open));
+}
+
+menuBtn.addEventListener('click', () => {
+  setMenu(!mobileMenu.classList.contains('open'));
 });
+
 mobileMenu.addEventListener('click', e => {
-  if (e.target.tagName === 'A') {
-    mobileMenu.classList.remove('open');
-    menuBtn.setAttribute('aria-expanded', 'false');
-  }
+  if (e.target.tagName === 'A') setMenu(false);
+});
+
+// An open overlay with no keyboard exit traps anyone not using a mouse.
+document.addEventListener('keydown', e => {
+  if (e.key !== 'Escape' || !mobileMenu.classList.contains('open')) return;
+  setMenu(false);
+  menuBtn.focus();   // send focus back to the control that opened it
 });
 
 const onScroll = () => nav.classList.toggle('scrolled', window.scrollY > 20);
@@ -870,6 +919,11 @@ filters.addEventListener('click', e => {
   });
 
   empty.hidden = shown > 0;
+
+  // Nothing about a CSS-driven show/hide reaches assistive tech, so state it.
+  document.getElementById('filter-status').textContent =
+    `${shown} project${shown === 1 ? '' : 's'} shown` +
+    (want === 'all' ? '' : ` in category ${btn.textContent.trim()}`);
 
   // Filtering changes document height, so every ScrollTrigger below the grid
   // is now anchored to the wrong scroll position until it recalculates.
