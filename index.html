@@ -51,7 +51,8 @@
    Every colour in the site resolves through these variables.
    The theme toggle flips [data-theme] on <html>; nothing else
    needs to know the theme exists.
-   ============================================================ */
+   =====================================================
+   ======= */
 :root {
   --bg:            #05060a;
   --bg-elevated:   rgba(255,255,255,.04);
@@ -634,7 +635,7 @@ footer {
       <div class="section-head" data-reveal>
         <span class="section-label">Work</span>
         <h2>Selected projects</h2>
-        <p>A mix of things I've built, designed, and written about.</p>
+        <p>A mix of things I've built</p>
       </div>
 
       <div class="filters" id="filters" role="group" aria-label="Filter projects by category" data-reveal></div>
@@ -722,41 +723,50 @@ footer {
    ============================================================ */
 const PROJECTS = [
   {
-    title: 'Nebula Dashboard',
-    blurb: 'A real-time analytics dashboard with streaming charts, saved views, and a command palette for everything.',
+    title: 'Simple OOP in Python',
+    blurb: 'A simple implementation of object-oriented programming concepts in Python.',
     category: 'code',
-    tags: ['React', 'TypeScript', 'WebSockets'],
+    tags: ['Python', 'OOP (Object Oriented Programming)'],
     image: null,
     accent: ['#8b5cf6', '#22d3ee'],
-    links: { demo: '#', source: '#' }
-  },
-  {
-    title: 'Orbit Design System',
-    blurb: 'A component library and token set built for a small team shipping fast — 40+ components, fully themeable.',
-    category: 'design',
-    tags: ['Figma', 'Design Tokens', 'Docs'],
-    image: null,
-    accent: ['#f472b6', '#8b5cf6'],
-    links: { demo: '#' }
-  },
-  {
-    title: 'Ledger CLI',
-    blurb: 'A terminal tool for tracking personal finances from plain-text files. Fast, offline, and scriptable.',
-    category: 'code',
-    tags: ['Python', 'CLI', 'SQLite'],
-    image: null,
-    accent: ['#22d3ee', '#34d399'],
-    links: { source: '#' }
-  },
-  {
-    title: 'Why Interfaces Feel Slow',
-    blurb: 'A writeup on perceived performance — why a 200ms interaction can feel worse than a 600ms one, and how to fix it.',
-    category: 'writing',
-    tags: ['Essay', 'Performance', 'UX'],
-    image: null,
-    accent: ['#fbbf24', '#f472b6'],
-    links: { writeup: '#' }
+    links: {source: 'https://github.com/Danons/Tubes-1-PBO-OOP-2023' }
   }
+  // {
+  //   title: 'Nebula Dashboard',
+  //   blurb: 'A real-time analytics dashboard with streaming charts, saved views, and a command palette for everything.',
+  //   category: 'code',
+  //   tags: ['React', 'TypeScript', 'WebSockets'],
+  //   image: null,
+  //   accent: ['#8b5cf6', '#22d3ee'],
+  //   links: { demo: '#', source: '#' }
+  // },
+  // {
+  //   title: 'Orbit Design System',
+  //   blurb: 'A component library and token set built for a small team shipping fast — 40+ components, fully themeable.',
+  //   category: 'design',
+  //   tags: ['Figma', 'Design Tokens', 'Docs'],
+  //   image: null,
+  //   accent: ['#f472b6', '#8b5cf6'],
+  //   links: { demo: '#' }
+  // },
+  // {
+  //   title: 'Ledger CLI',
+  //   blurb: 'A terminal tool for tracking personal finances from plain-text files. Fast, offline, and scriptable.',
+  //   category: 'code',
+  //   tags: ['Python', 'CLI', 'SQLite'],
+  //   image: null,
+  //   accent: ['#22d3ee', '#34d399'],
+  //   links: { source: '#' }
+  // },
+  // {
+  //   title: 'Why Interfaces Feel Slow',
+  //   blurb: 'A writeup on perceived performance — why a 200ms interaction can feel worse than a 600ms one, and how to fix it.',
+  //   category: 'writing',
+  //   tags: ['Essay', 'Performance', 'UX'],
+  //   image: null,
+  //   accent: ['#fbbf24', '#f472b6'],
+  //   links: { writeup: '#' }
+  // }
 ];
 
 const CATEGORIES = [
